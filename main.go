@@ -213,6 +213,9 @@ func process(msg *input, ws *websocket.Conn) {
 		} else if msg.Act == "append" {
 			output := append_p(&msg.Loc, &database, &value, &msg.Dbname)
 			ws.WriteJSON("{\"Status\": \"" + output + "\"}")
+		} else if msg.Act == "index" {
+			output := index(&msg.Loc, &database, &value)
+			ws.WriteJSON(&output)
 		}
 		nullify(&value)
 	}
@@ -328,6 +331,24 @@ func search(direct *string, jsonParsed *gabs.Container, value *[]byte) interface
 	}
 
 	return "Cannot find value."
+}
+
+func index(direct *string, jsonParsed *gabs.Container, value *[]byte) interface{} {
+	parts := strings.Split(string(*value), ":")
+	targ := []byte(parts[1])
+	target, _ := unmarshalJSONValue(&targ)
+	targ = nil
+
+	a := []int{}
+
+	it := jsonParsed.Path(*direct).Children()
+	for i, user := range it {
+		if strings.ToLower(fmt.Sprint(user.Path(parts[0]).Data())) == strings.ToLower(fmt.Sprint(target)) {
+			a = append(a, i)
+		}
+	}
+
+	return a
 }
 
 func append_p(direct *string, jsonParsed *gabs.Container, value *[]byte, location *string) string {
